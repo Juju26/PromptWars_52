@@ -7,7 +7,7 @@ export default function MessageFeed() {
   const bottomRef = useRef(null)
   const { data, isLoading, fetchNextPage, hasNextPage } = useMessages(channel)
   
-  const messages = data?.pages.flatMap((p) => p.messages) ?? []
+  const messages = data?.pages?.flatMap((p) => p?.messages || []) ?? []
 
   useEffect(() => { 
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

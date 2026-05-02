@@ -36,7 +36,7 @@ export default function MessageInput() {
 
     try {
       // Small timeout for mock mode so we don't hang if backend is missing
-      await client.post('/messages', { channel, content: sentText }, { timeout: 1000 })
+      await client.post('/messaging/messages', { channel, content: sentText }, { timeout: 1000 })
       qc.invalidateQueries(['messages', channel])
     } catch {
       // Silently fail for local mock testing

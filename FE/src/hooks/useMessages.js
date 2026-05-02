@@ -14,8 +14,14 @@ const MOCK_MESSAGES = {
 
 const fetchMessages = async (channel, pageParam) => {
   try {
-    const url = `/messages?channel=${channel}${pageParam ? `&before=${pageParam}` : ''}`
+    const url = `/messaging/messages?channel=${channel}${pageParam ? `&before=${pageParam}` : ''}`
     const res = await client.get(url)
+    
+    // If we receive an HTML response (e.g. from Vite dev server fallback) or invalid format, throw to fallback
+    if (typeof res.data === 'string' || !res.data) {
+      throw new Error('Invalid response format')
+    }
+    
     return res.data
   } catch {
     // Fall back to mock
