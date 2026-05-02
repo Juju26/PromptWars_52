@@ -4,9 +4,18 @@ const PRIORITY_BADGE = {
   LOW:    'bg-green-900 text-green-300',
 }
 
-export default function TaskCard({ task }) {
+export default function TaskCard({ task, onClick }) {
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('taskId', task.id)
+  }
+
   return (
-    <div className="bg-gray-800 rounded-lg p-3 cursor-pointer hover:bg-gray-700 transition-colors">
+    <div 
+      draggable
+      onDragStart={handleDragStart}
+      onClick={() => onClick(task)}
+      className="bg-gray-800 rounded-lg p-3 cursor-pointer hover:bg-gray-700 transition-colors"
+    >
       <p className="text-sm text-white font-medium mb-2 line-clamp-2">{task.title}</p>
       <div className="flex items-center justify-between">
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_BADGE[task.priority] || 'bg-gray-700 text-gray-400'}`}>

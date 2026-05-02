@@ -6,38 +6,40 @@ import { useQueryClient } from '@tanstack/react-query'
 
 export default function MessageInput() {
   const [text, setText] = useState('')
-  const [sending, setSending] = useState(false)
   const channel = useAppStore((s) => s.activeChannel)
   const qc = useQueryClient()
 
   const send = async (e) => {
     e.preventDefault()
     if (!text.trim()) return
-    setSending(true)
+
+    const sentText = text
+    setText('')
+
+    // Optimistic update instantly
+    const newMsg = {
+      id: Math.random().toString(),
+      sender: 'me',
+      content: sentText,
+      timestamp: new Date().toISOString()
+    }
+
+    qc.setQueryData(['messages', channel], (old) => {
+      if (!old) return { pages: [{ messages: [newMsg], nextCursor: null }], pageParams: [] }
+      return {
+        ...old,
+        pages: old.pages.map((p, i) => 
+          i === 0 ? { ...p, messages: [...p.messages, newMsg] } : p
+        )
+      }
+    })
+
     try {
-      await client.post('/messages', { channel, content: text })
-      setText('')
+      // Small timeout for mock mode so we don't hang if backend is missing
+      await client.post('/messages', { channel, content: sentText }, { timeout: 1000 })
       qc.invalidateQueries(['messages', channel])
     } catch {
-      // Mock optimistic update for local testing
-      qc.setQueryData(['messages', channel], (old) => {
-        if (!old) return old
-        const newMsg = {
-          id: Math.random().toString(),
-          sender: 'me',
-          content: text,
-          timestamp: new Date().toISOString()
-        }
-        return {
-          ...old,
-          pages: old.pages.map((p, i) => 
-            i === 0 ? { ...p, messages: [...p.messages, newMsg] } : p
-          )
-        }
-      })
-      setText('')
-    } finally { 
-      setSending(false) 
+      // Silently fail for local mock testing
     }
   }
 
@@ -48,11 +50,10 @@ export default function MessageInput() {
         placeholder={`Message #${channel}`}
         value={text} 
         onChange={(e) => setText(e.target.value)} 
-        disabled={sending}
       />
       <button 
         type="submit" 
-        disabled={sending || !text.trim()} 
+        disabled={!text.trim()} 
         className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-lg px-4 py-2 transition-colors flex items-center justify-center"
       >
         <Send size={16} />

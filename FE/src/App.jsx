@@ -5,6 +5,7 @@ import AppShell from './components/layout/AppShell'
 import DashboardPage from './pages/DashboardPage'
 import KanbanPage from './pages/KanbanPage'
 import MessagingPage from './pages/MessagingPage'
+import MeshPage from './pages/MeshPage'
 import LoginPage from './pages/LoginPage'
 
 const qc = new QueryClient({
@@ -27,6 +28,7 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="/kanban" element={<KanbanPage />} />
             <Route path="/messaging" element={<MessagingPage />} />
+            <Route path="/mesh" element={<MeshPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
