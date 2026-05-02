@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: messaging-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/promptwars_messaging}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 3
+      pool-name: MessagingServicePool
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc.batch_size: 50
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  # Google Cloud Pub/Sub
+  cloud:
+    gcp:
+      project-id: ${GCP_PROJECT_ID}
+      pubsub:
+        emulator-host: ${PUBSUB_EMULATOR_HOST:}   # Set in local dev to use emulator
+
+pubsub:
+  topic:
+    notifications: hackathon-notifications
+    announcements: hackathon-announcements
+  subscription:
+    announcements: hackathon-announcements-sub
+
+server:
+  port: ${PORT:8083}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiry-ms: ${JWT_ACCESS_EXPIRY_MS:900000}
+
+logging:
+  level:
+    com.promptwars: INFO
+    com.google.cloud: WARN

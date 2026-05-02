@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: beacon-service
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/promptwars_beacon}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      pool-name: BeaconServicePool
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  cache:
+    type: simple   # ConcurrentHashMap — upgrade to Caffeine/Redis for production scale
+
+server:
+  port: ${PORT:8084}
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,caches
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiry-ms: ${JWT_ACCESS_EXPIRY_MS:900000}
+
+beacon:
+  ttl-minutes: ${BEACON_TTL_MINUTES:10}
+  eviction-interval-ms: ${BEACON_EVICTION_INTERVAL_MS:120000}
+
+logging:
+  level:
+    com.promptwars: INFO

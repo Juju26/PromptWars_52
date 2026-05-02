@@ -1,0 +1,119 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────
+#  PromptWars Local Development Stack
+#  Usage: docker compose up -d
+#  Services start order: postgres → pubsub-emulator → *-service
+# ─────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL ────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: promptwars-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-databases.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── GCP Pub/Sub Emulator (local dev) ─────────────
+  pubsub-emulator:
+    image: gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators
+    container_name: promptwars-pubsub
+    command: gcloud beta emulators pubsub start --host-port=0.0.0.0:8085
+    ports:
+      - "8085:8085"
+    restart: unless-stopped
+
+  # ── User Service ──────────────────────────────────
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: promptwars-user-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/promptwars_users
+      DB_USER: postgres
+      DB_PASS: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ACCESS_EXPIRY_MS: 900000
+      JWT_REFRESH_EXPIRY_MS: 604800000
+    restart: on-failure
+
+  # ── Task Service ──────────────────────────────────
+  task-service:
+    build:
+      context: .
+      dockerfile: task-service/Dockerfile
+    container_name: promptwars-task-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/promptwars_tasks
+      DB_USER: postgres
+      DB_PASS: postgres
+      JWT_SECRET: ${JWT_SECRET}
+    restart: on-failure
+
+  # ── Messaging Service ─────────────────────────────
+  messaging-service:
+    build:
+      context: .
+      dockerfile: messaging-service/Dockerfile
+    container_name: promptwars-messaging-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pubsub-emulator:
+        condition: service_started
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/promptwars_messaging
+      DB_USER: postgres
+      DB_PASS: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      GCP_PROJECT_ID: local-dev-project
+      PUBSUB_EMULATOR_HOST: pubsub-emulator:8085
+    restart: on-failure
+
+  # ── Beacon Service ────────────────────────────────
+  beacon-service:
+    build:
+      context: .
+      dockerfile: beacon-service/Dockerfile
+    container_name: promptwars-beacon-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/promptwars_beacon
+      DB_USER: postgres
+      DB_PASS: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      BEACON_TTL_MINUTES: 10
+    restart: on-failure
+
+volumes:
+  postgres_data:
